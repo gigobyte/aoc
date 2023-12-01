@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-import qualified Data.List                     as List
 import           Data.Text                      ( Text )
 import           Data.Ord                       ( comparing )
-import           Data.Text.Internal.Search     as T
+import qualified Data.List                     as List
+import qualified Data.Text.Internal.Search     as T
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
 
