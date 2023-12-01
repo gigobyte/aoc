@@ -17,10 +17,10 @@ textToDigit t =
 
 getDigitsWithIndices :: Text -> [(Text, (Int, Int))]
 getDigitsWithIndices document =
-  [ (digitAsText, (minimum indexes, maximum indexes))
+  [ (digitAsText, (minimum occurancesOfDigit, maximum occurancesOfDigit))
   | digitAsText <- digitsAsText
-  , let indexes = T.indices digitAsText document
-  , not (null indexes)
+  , let occurancesOfDigit = T.indices digitAsText document
+  , not (null occurancesOfDigit)
   ]
 
 getCalibrationValue :: Text -> Int
@@ -31,7 +31,7 @@ getCalibrationValue document =
   in  read $ show (textToDigit firstDigit) ++ show (textToDigit secondDigit)
 
 solve :: Text -> Int
-solve = sum . (getCalibrationValue <$>) . T.lines
+solve = sum . map getCalibrationValue . T.lines
 
 main = do
   input <- T.readFile "./input.txt"
