@@ -1,10 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Text                      ( Text )
 import           Data.Attoparsec.Text
-import           Data.Either                    ( rights )
 import           Data.Maybe                     ( mapMaybe )
 import qualified Data.List.Safe                as List
-import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
 
 data Cube = Red Int | Green Int | Blue Int deriving (Show)
