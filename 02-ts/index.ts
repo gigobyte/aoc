@@ -1,12 +1,10 @@
-import { Compute } from 'ts-toolbelt/out/Any/Compute'
-import { Diff } from 'ts-toolbelt/out/List/Diff'
 import { Add } from 'ts-toolbelt/out/Number/Add'
 import { LowerEq } from 'ts-toolbelt/out/Number/LowerEq'
 import { Replace } from 'ts-toolbelt/out/String/Replace'
 import { Split } from 'ts-toolbelt/out/String/Split'
 import { ListOf } from 'ts-toolbelt/out/Union/ListOf'
 
-type Sum<T extends number[], TAcc extends number = 0> = T extends [
+type Sum<T, TAcc extends number = 0> = T extends [
   infer fst extends number,
   ...infer rest extends number[]
 ]
@@ -54,15 +52,12 @@ type FilterInvalidGames<T extends { id: number; sets: any }> =
   0 extends IsValidCubeCount<T['sets']> ? never : T['id']
 
 type Solve<T> = Sum<
-  Extract<
-    ListOf<
-      keyof {
-        [i in keyof SplitGames<T> as FilterInvalidGames<
-          ParseGame<SplitGames<T>[i]>
-        >]: never
-      }
-    >,
-    number[]
+  ListOf<
+    keyof {
+      [i in keyof SplitGames<T> as FilterInvalidGames<
+        ParseGame<SplitGames<T>[i]>
+      >]: never
+    }
   >
 >
 
