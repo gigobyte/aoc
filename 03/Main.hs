@@ -43,12 +43,12 @@ mergeParts part1 part2 = PartNumber
   (coordsEnd part2)
 
 upsertPointCoordinates :: [SchematicInfo] -> PartNumber -> [SchematicInfo]
-upsertPointCoordinates []        part = [Part part]
-upsertPointCoordinates fragments part = case last fragments of
+upsertPointCoordinates []    part = [Part part]
+upsertPointCoordinates infos part = case last infos of
   Part p -> if getPartEndCoordsY p == getPartEndCoordsY part - 1
-    then init fragments ++ [Part $ mergeParts p part]
-    else fragments ++ [Part part]
-  Gear _ -> fragments ++ [Part part]
+    then init infos ++ [Part $ mergeParts p part]
+    else infos ++ [Part part]
+  Gear _ -> infos ++ [Part part]
 
 mapRow :: Int -> Text -> Row
 mapRow idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
@@ -98,8 +98,12 @@ getSchematicInfo =
         = acc
   in  foldl go []
 
-getValidPartNumbers :: [Point] -> [PartNumber] -> [PartNumber]
-getValidPartNumbers matrix = mfilter (hasAdjacentSymbol matrix)
+getValidPartNumbers :: [Row] -> [PartNumber]
+getValidPartNumbers rows =
+  [ x
+  | (Part x) <- concatMap getSchematicInfo rows
+  , hasAdjacentSymbol (concat rows) x
+  ]
 
 getGearRatio :: [PartNumber] -> Gear -> Int
 getGearRatio parts gear = case mfilter (isAdjacentPartNumber gear) parts of
@@ -108,10 +112,9 @@ getGearRatio parts gear = case mfilter (isAdjacentPartNumber gear) parts of
 
 solve1 :: Text -> Int
 solve1 input =
-  let rows        = mapRows $ T.lines input
-      matrix      = concat rows
-      partNumbers = [ x | (Part x) <- concatMap getSchematicInfo rows ]
-  in  sum $ partNumber <$> getValidPartNumbers matrix partNumbers
+  let rows             = mapRows $ T.lines input
+      validPartNumbers = getValidPartNumbers rows
+  in  sum $ partNumber <$> validPartNumbers
 
 solve2 :: Text -> Int
 solve2 input =
