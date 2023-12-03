@@ -30,24 +30,22 @@ getPartAllPoints :: PartNumber -> [Point]
 getPartAllPoints PartNumber { coordsStart, coordsEnd } =
   ('_', fst coordsStart, ) <$> [snd coordsStart .. snd coordsEnd]
 
+addToNumber :: Int -> Int -> Int
+addToNumber a b = read $ show a ++ show b
+
+mergeParts :: PartNumber -> PartNumber -> PartNumber
+mergeParts part1 part2 = PartNumber
+  (addToNumber (partNumber part1) (partNumber part2))
+  (coordsStart part1)
+  (coordsEnd part2)
+
 upsertPointCoordinates :: [PartNumber] -> PartNumber -> [PartNumber]
 upsertPointCoordinates [] part = [part]
-upsertPointCoordinates parts part =
-  let lastPart = last parts
-  in  if getPartEndCoordsY lastPart == getPartEndCoordsY part - 1
-        then
-          take (length parts - 1) parts
-            ++ [ PartNumber
-                   { partNumber  = addToNumber (partNumber lastPart)
-                                               (partNumber part)
-                   , coordsStart = coordsStart lastPart
-                   , coordsEnd   = coordsEnd part
-                   }
-               ]
-        else parts ++ [part]
-
-isSymbol :: Point -> Bool
-isSymbol (c, _, _) = not (isDigit c) && c /= '.'
+upsertPointCoordinates parts part
+  | getPartEndCoordsY (last parts) == getPartEndCoordsY part - 1
+  = init parts ++ [mergeParts (last parts) part]
+  | otherwise
+  = parts ++ [part]
 
 mapRow :: Int -> Text -> Row
 mapRow idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
@@ -55,11 +53,11 @@ mapRow idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
 mapRows :: [Text] -> [Row]
 mapRows = mapWithIndex mapRow
 
-addToNumber :: Int -> Int -> Int
-addToNumber a b = read $ show a ++ show b
-
 getCharAtPos :: [Point] -> (Int, Int) -> Maybe Point
 getCharAtPos matrix (x, y) = find (\(_, x2, y2) -> x == x2 && y == y2) matrix
+
+isSymbol :: Point -> Bool
+isSymbol (c, _, _) = not (isDigit c) && c /= '.'
 
 hasSymbolNeighbour :: [Point] -> Point -> Bool
 hasSymbolNeighbour matrix (c, x, y) = any
