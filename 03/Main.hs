@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TupleSections #-}
 import           Data.Text                      ( Text )
 import           Data.Char                      ( digitToInt
                                                 , isDigit
                                                 )
-import           Data.List                      ( find
-                                                , nub
-                                                )
+import           Data.List                      ( find )
 import           Control.Monad                  ( mfilter )
 import           Data.Maybe                     ( isJust )
 import qualified Data.Text                     as T
@@ -23,17 +23,43 @@ data PartNumber = PartNumber
 mapWithIndex :: (Int -> a -> b) -> [a] -> [b]
 mapWithIndex = flip zipWith [0 ..]
 
+getPartEndCoordsY :: PartNumber -> Int
+getPartEndCoordsY PartNumber { coordsEnd } = snd coordsEnd
+
+getPartAllPoints :: PartNumber -> [Point]
+getPartAllPoints PartNumber { coordsStart, coordsEnd } =
+  ('_', fst coordsStart, ) <$> [snd coordsStart .. snd coordsEnd]
+
+upsertPointCoordinates :: [PartNumber] -> PartNumber -> [PartNumber]
+upsertPointCoordinates [] part = [part]
+upsertPointCoordinates parts part =
+  let lastPart = last parts
+  in  if getPartEndCoordsY lastPart == getPartEndCoordsY part - 1
+        then
+          take (length parts - 1) parts
+            ++ [ PartNumber
+                   { partNumber  = addToNumber (partNumber lastPart)
+                                               (partNumber part)
+                   , coordsStart = coordsStart lastPart
+                   , coordsEnd   = coordsEnd part
+                   }
+               ]
+        else parts ++ [part]
+
 isSymbol :: Point -> Bool
 isSymbol (c, _, _) = not (isDigit c) && c /= '.'
 
-mapLine :: Int -> Text -> [Point]
-mapLine idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
+mapRow :: Int -> Text -> Row
+mapRow idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
 
-mapLines :: [Text] -> [[Point]]
-mapLines = mapWithIndex mapLine
+mapRows :: [Text] -> [Row]
+mapRows = mapWithIndex mapRow
 
-addToNumber :: Int -> Char -> Int
-addToNumber a b = read $ show a ++ [b]
+addToNumber :: Int -> Int -> Int
+addToNumber a b = read $ show a ++ show b
+
+getCharAtPos :: [Point] -> (Int, Int) -> Maybe Point
+getCharAtPos matrix (x, y) = find (\(_, x2, y2) -> x == x2 && y == y2) matrix
 
 hasSymbolNeighbour :: [Point] -> Point -> Bool
 hasSymbolNeighbour matrix (c, x, y) = any
@@ -48,65 +74,30 @@ hasSymbolNeighbour matrix (c, x, y) = any
   , (x - 1, y - 1)
   ]
 
-isPointInsidePartNumber :: Point -> PartNumber -> Bool
-isPointInsidePartNumber (_, x, y) part =
-  fst (coordsStart part)
-    == x
-    && snd (coordsStart part)
-    <= y
-    && snd (coordsEnd part)
-    >= y
-
-data PartParsing
-  = StartNotFound
-  | InProgress PartNumber
-  | Found PartNumber
-
-getFullPartNumber :: [Point] -> Point -> PartParsing
-getFullPartNumber matrix point@(_, x, _) =
-  let row = mfilter (\(_, rowX, _) -> rowX == x) matrix
-
-      findRestOfNumber :: PartParsing -> Point -> PartParsing
-      findRestOfNumber acc (currC, currX, currY) = case acc of
-        StartNotFound -> if isDigit currC
-          then InProgress
-            (PartNumber { partNumber  = digitToInt currC
-                        , coordsStart = (currX, currY)
-                        , coordsEnd   = (currX, currY)
-                        }
-            )
-          else StartNotFound
-        InProgress part -> if isDigit currC
-          then InProgress
-            (PartNumber { partNumber  = addToNumber (partNumber part) currC
-                        , coordsStart = coordsStart part
-                        , coordsEnd   = (currX, currY)
-                        }
-            )
-          else if isPointInsidePartNumber point part
-            then Found part
-            else StartNotFound
-        Found _ -> acc
-  in  foldl findRestOfNumber StartNotFound row
-
-getCharAtPos :: [Point] -> (Int, Int) -> Maybe Point
-getCharAtPos matrix (x, y) = find (\(_, x2, y2) -> x == x2 && y == y2) matrix
-
--- getPartNumbers' :: [Point] -> [PartNumber] -> Point -> [PartNumber]
--- getPartNumbers' matrix acc point@(c, x, y)
---   | isDigit c && hasSymbolNeighbour matrix point
---   = acc ++ [ part | (Found part) <- [getFullPartNumber matrix point] ]
---   | otherwise
---   = acc
+isPartNumberWithNeighbour :: [Point] -> PartNumber -> Bool
+isPartNumberWithNeighbour matrix part =
+  any (hasSymbolNeighbour matrix) (getPartAllPoints part)
 
 getPartNumbers :: Row -> [PartNumber]
 getPartNumbers =
   let go :: [PartNumber] -> Point -> [PartNumber]
-      go = undefined
+      go acc (currC, currX, currY) = if isDigit currC
+        then
+          let newPart =
+                PartNumber (digitToInt currC) (currX, currY) (currX, currY)
+          in  upsertPointCoordinates acc newPart
+        else acc
   in  foldl go []
 
--- solve :: Text -> Int
-solve = map getPartNumbers . mapLines . T.lines
+getValidPartNumbers :: [Point] -> [PartNumber] -> [PartNumber]
+getValidPartNumbers matrix = mfilter (isPartNumberWithNeighbour matrix)
+
+solve :: Text -> Int
+solve input =
+  let rows           = mapRows $ T.lines input
+      matrix         = concat rows
+      allPartNumbers = concatMap getPartNumbers rows
+  in  sum $ partNumber <$> getValidPartNumbers matrix allPartNumbers
 
 main = do
   input <- T.readFile "./input.txt"
