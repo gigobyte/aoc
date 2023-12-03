@@ -2,6 +2,7 @@
 import           Data.Text                      ( Text )
 import           Data.Attoparsec.Text
 import           Data.Maybe                     ( mapMaybe )
+import           Data.Either                    ( fromRight )
 import qualified Data.List.Safe                as List
 import qualified Data.Text.IO                  as T
 
@@ -35,7 +36,7 @@ parseInput :: Parser [Game]
 parseInput = parseGame `sepBy` endOfLine
 
 unsafeParseInput :: Text -> [Game]
-unsafeParseInput = either (const undefined) id . parseOnly parseInput
+unsafeParseInput = fromRight undefined . parseOnly parseInput
 -- Parser
 
 isValidCubeCount :: Cube -> Bool
