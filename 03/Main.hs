@@ -13,12 +13,15 @@ import qualified Data.Text.IO                  as T
 
 type Point = (Char, Int, Int)
 type Row = [Point]
+type Gear = (Int, Int)
 
 data PartNumber = PartNumber
   { partNumber :: Int
   , coordsStart :: (Int, Int)
   , coordsEnd :: (Int, Int)
   } deriving (Eq, Show)
+
+data SchematicInfo = Part PartNumber | Gear Gear deriving (Eq, Show)
 
 mapWithIndex :: (Int -> a -> b) -> [a] -> [b]
 mapWithIndex = flip zipWith [0 ..]
@@ -39,13 +42,13 @@ mergeParts part1 part2 = PartNumber
   (coordsStart part1)
   (coordsEnd part2)
 
-upsertPointCoordinates :: [PartNumber] -> PartNumber -> [PartNumber]
-upsertPointCoordinates [] part = [part]
-upsertPointCoordinates parts part
-  | getPartEndCoordsY (last parts) == getPartEndCoordsY part - 1
-  = init parts ++ [mergeParts (last parts) part]
-  | otherwise
-  = parts ++ [part]
+upsertPointCoordinates :: [SchematicInfo] -> PartNumber -> [SchematicInfo]
+upsertPointCoordinates []        part = [Part part]
+upsertPointCoordinates fragments part = case last fragments of
+  Part p -> if getPartEndCoordsY p == getPartEndCoordsY part - 1
+    then init fragments ++ [Part $ mergeParts p part]
+    else fragments ++ [Part part]
+  Gear _ -> fragments ++ [Part part]
 
 mapRow :: Int -> Text -> Row
 mapRow idx line = mapWithIndex (\idx2 c -> (c, idx, idx2)) $ T.unpack line
@@ -59,9 +62,9 @@ getCharAtPos matrix (x, y) = find (\(_, x2, y2) -> x == x2 && y == y2) matrix
 isSymbol :: Point -> Bool
 isSymbol (c, _, _) = not (isDigit c) && c /= '.'
 
-hasSymbolNeighbour :: [Point] -> Point -> Bool
-hasSymbolNeighbour matrix (c, x, y) = any
-  (\coords -> isJust (mfilter isSymbol $ getCharAtPos matrix coords))
+hasAdjacent :: (Point -> Bool) -> [Point] -> Point -> Bool
+hasAdjacent cond matrix (c, x, y) = any
+  (\coords -> isJust (mfilter cond $ getCharAtPos matrix coords))
   [ (x + 1, y)
   , (x - 1, y)
   , (x    , y - 1)
@@ -72,31 +75,54 @@ hasSymbolNeighbour matrix (c, x, y) = any
   , (x - 1, y - 1)
   ]
 
-isPartNumberWithNeighbour :: [Point] -> PartNumber -> Bool
-isPartNumberWithNeighbour matrix part =
-  any (hasSymbolNeighbour matrix) (getPartAllPoints part)
+hasAdjacentSymbol :: [Point] -> PartNumber -> Bool
+hasAdjacentSymbol matrix part =
+  any (hasAdjacent isSymbol matrix) (getPartAllPoints part)
 
-getPartNumbers :: Row -> [PartNumber]
-getPartNumbers =
-  let go :: [PartNumber] -> Point -> [PartNumber]
-      go acc (currC, currX, currY) = if isDigit currC
-        then
-          let newPart =
-                PartNumber (digitToInt currC) (currX, currY) (currX, currY)
+isAdjacentPartNumber :: Gear -> PartNumber -> Bool
+isAdjacentPartNumber (gearX, gearY) part =
+  hasAdjacent (const True) (getPartAllPoints part) ('_', gearX, gearY)
+
+getSchematicInfo :: Row -> [SchematicInfo]
+getSchematicInfo =
+  let go :: [SchematicInfo] -> Point -> [SchematicInfo]
+      go acc (currC, currX, currY)
+        | isDigit currC
+        = let newPartCoords = (currX, currY)
+              newPart =
+                  PartNumber (digitToInt currC) newPartCoords newPartCoords
           in  upsertPointCoordinates acc newPart
-        else acc
+        | currC == '*'
+        = acc ++ [Gear (currX, currY)]
+        | otherwise
+        = acc
   in  foldl go []
 
 getValidPartNumbers :: [Point] -> [PartNumber] -> [PartNumber]
-getValidPartNumbers matrix = mfilter (isPartNumberWithNeighbour matrix)
+getValidPartNumbers matrix = mfilter (hasAdjacentSymbol matrix)
 
-solve :: Text -> Int
-solve input =
-  let rows           = mapRows $ T.lines input
-      matrix         = concat rows
-      allPartNumbers = concatMap getPartNumbers rows
-  in  sum $ partNumber <$> getValidPartNumbers matrix allPartNumbers
+getGearRatio :: [PartNumber] -> Gear -> Int
+getGearRatio parts gear = case mfilter (isAdjacentPartNumber gear) parts of
+  [part1, part2] -> partNumber part1 * partNumber part2
+  _              -> 0
+
+solve1 :: Text -> Int
+solve1 input =
+  let rows        = mapRows $ T.lines input
+      matrix      = concat rows
+      partNumbers = [ x | (Part x) <- concatMap getSchematicInfo rows ]
+  in  sum $ partNumber <$> getValidPartNumbers matrix partNumbers
+
+solve2 :: Text -> Int
+solve2 input =
+  let rows        = mapRows $ T.lines input
+      matrix      = concat rows
+      info        = concatMap getSchematicInfo rows
+      partNumbers = [ x | (Part x) <- info ]
+      gears       = [ x | (Gear x) <- info ]
+  in  sum $ getGearRatio partNumbers <$> gears
 
 main = do
   input <- T.readFile "./input.txt"
-  print $ solve input
+  print $ solve1 input
+  print $ solve2 input
