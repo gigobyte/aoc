@@ -171,3 +171,13 @@ type Sum<T, TAcc extends number = 0> = T extends [
   : TAcc
 
 type result = Sum<scores>
+
+type Solve<T extends string> = Sum<
+  scores_<
+    intersections_<
+      numbers_<rawNumbers_<cleanedChunks_<chunks_<Split<T, '\n'>>>>>
+    >
+  >
+>
+
+type test = Solve<input>
