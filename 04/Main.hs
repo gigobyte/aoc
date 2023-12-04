@@ -1,17 +1,17 @@
-import           Data.Bifunctor                 ( bimap )
+import           Data.Bifunctor                 ( second )
 import           Data.List                      ( intersect )
 
-parseCard :: String -> ([Int], [Int])
-parseCard = bimap (map read) (map read . tail) . span (/= "|") . drop 2 . words
+parseCard :: String -> ([String], [String])
+parseCard = span (/= "|") . drop 2 . words
 
-countMatches :: ([Int], [Int]) -> Int
+countMatches :: ([String], [String]) -> Int
 countMatches = length . uncurry intersect
 
 calculatePoints :: Int -> Int
 calculatePoints 0       = 0
 calculatePoints matches = 2 ^ (matches - 1)
 
-getScratchcards :: [([Int], [Int])] -> [Int]
+getScratchcards :: [([String], [String])] -> [Int]
 getScratchcards = foldr (\c l -> sum (take (countMatches c) l) + 1 : l) []
 
 solve1 :: String -> Int
