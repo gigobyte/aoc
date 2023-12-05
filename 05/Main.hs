@@ -1,21 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Text                      ( Text )
-import           Data.Maybe                     ( mapMaybe )
-import           Data.List                      ( nub )
 import           Control.Parallel.Strategies
 import           Data.Function.Memoize
+import           Data.Maybe                     ( mapMaybe )
+import           Data.List                      ( nub )
+import           Data.List.Split                ( chunksOf
+                                                , splitWhen
+                                                )
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
-
-group :: Int -> [a] -> [[a]]
-group _ []        = []
-group n l | n > 0 = take n l : group n (drop n l)
-
-splitWhen :: (a -> Bool) -> [a] -> [[a]]
-splitWhen p xs = go xs []
- where
-  go []       acc = [acc]
-  go (y : ys) acc = if p y then acc : go ys [] else go ys (acc ++ [y])
 
 parseSeeds1 :: Text -> [Int]
 parseSeeds1 line = read . T.unpack <$> T.words (T.replace "seeds: " "" line)
@@ -26,7 +19,7 @@ generateSeedRange [rangeStart, rangeLength] =
 
 parseSeeds2 :: Text -> [Int]
 parseSeeds2 line =
-  nub $ concatMap generateSeedRange $ group 2 $ parseSeeds1 line
+  nub $ concatMap generateSeedRange $ chunksOf 2 $ parseSeeds1 line
 
 parseMap :: Text -> [Int]
 parseMap = map (read . T.unpack) . T.words
