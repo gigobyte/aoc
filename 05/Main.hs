@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Text                      ( Text )
 import           Control.Parallel.Strategies
-import           Data.Function.Memoize
 import           Data.Maybe                     ( mapMaybe )
 import           Data.List                      ( nub )
 import           Data.List.Split                ( chunksOf
@@ -38,13 +37,11 @@ findSourceInMap source [destRangeStart, sourceRangeStart, rangeLength]
   | otherwise
   = Nothing
 
-getSourceDestination' :: Int -> [[Int]] -> Int
-getSourceDestination' source maps =
+getSourceDestination :: Int -> [[Int]] -> Int
+getSourceDestination source maps =
   case mapMaybe (findSourceInMap source) maps of
     []     -> source
     [dest] -> dest
-
-getSourceDestination = memoize2 getSourceDestination'
 
 findLocationNumber :: [[[Int]]] -> Int -> Int
 findLocationNumber maps seed = foldl getSourceDestination seed maps
