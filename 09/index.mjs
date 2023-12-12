@@ -1,7 +1,5 @@
 import fs from 'node:fs'
 
-const sum = (arr) => arr.reduce((acc, x) => acc + x)
-
 const getExtrapolations = (prevExtrapolations) => {
   const last = prevExtrapolations[prevExtrapolations.length - 1]
 
