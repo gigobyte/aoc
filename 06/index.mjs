@@ -43,4 +43,4 @@ const input = fs.readFileSync('./input.txt').toString()
 const result1 = solve1(input)
 const result2 = solve2(input)
 
-console.log(result2)
+console.log(result1, result2)
