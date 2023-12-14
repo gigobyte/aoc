@@ -7,8 +7,6 @@ const tranpose = (rows) => {
 }
 
 const hasExactlyOneDifference = (row1, row2) => {
-  if (!row1 || !row2) return false
-
   let foundDifference = false
 
   for (let i = 0; i < row1.length; i++) {
@@ -24,43 +22,53 @@ const hasExactlyOneDifference = (row1, row2) => {
   return foundDifference
 }
 
-const getReflection = (rows, mustSmudge, blacklist = []) => {
+const getReflection = (rows, mustSmudge, ignoredReflection, deadEnds = []) => {
   for (let i = 0; i < rows.length; i++) {
-    if (rows[i] === rows[i + 1] && !blacklist.includes(i)) {
+    if (
+      rows[i] === rows[i + 1] &&
+      !deadEnds.includes(i) &&
+      (ignoredReflection ? i !== ignoredReflection - 1 : true)
+    ) {
       const rowsToCompare = Math.min(i, rows.length - i - 2)
 
       for (let j = 0; j < rowsToCompare; j++) {
         const prevRow = rows[i - j - 1]
         const nextRow = rows[i + j + 2]
 
-        if (prevRow !== nextRow) {
+        if (nextRow && prevRow !== nextRow) {
           if (mustSmudge && hasExactlyOneDifference(prevRow, nextRow)) {
             const maybeNewReflection = getReflection(
               Object.assign([], rows, { [i - j - 1]: nextRow }),
               false,
-              [...blacklist, i]
+              ignoredReflection
             )
 
             if (maybeNewReflection) {
               return maybeNewReflection
             }
           }
-          return getReflection(rows, mustSmudge, [...blacklist, i])
+
+          return getReflection(rows, mustSmudge, ignoredReflection, [
+            ...deadEnds,
+            i
+          ])
         }
       }
 
-      if (mustSmudge) {
-        return getReflection(rows, mustSmudge, [...blacklist, i])
+      if (!mustSmudge) {
+        return i + 1
       }
-
-      return i + 1
     }
 
-    if (hasExactlyOneDifference(rows[i], rows[i + 1])) {
+    if (
+      mustSmudge &&
+      rows[i + 1] &&
+      hasExactlyOneDifference(rows[i], rows[i + 1])
+    ) {
       const maybeNewReflection = getReflection(
         Object.assign([], rows, { [i]: rows[i + 1] }),
         false,
-        [...blacklist, i]
+        ignoredReflection
       )
 
       if (maybeNewReflection) {
@@ -73,22 +81,34 @@ const getReflection = (rows, mustSmudge, blacklist = []) => {
 const getPatternNote = (mustSmudge) => (pattern) => {
   const rows = pattern.split('\n')
 
-  const reflectedRowsAbove = getReflection(rows, mustSmudge)
+  const unsmudgedRowReflection = mustSmudge ? getReflection(rows, false) : null
+  const reflectedRowsAbove = getReflection(
+    rows,
+    mustSmudge,
+    unsmudgedRowReflection
+  )
 
   if (reflectedRowsAbove > 0) {
     return reflectedRowsAbove * 100
   }
 
-  const reflectedColumnsLeft = getReflection(tranpose(rows), mustSmudge)
+  const columns = tranpose(rows)
+
+  const unsmudgedColumnReflection = mustSmudge
+    ? getReflection(columns, false)
+    : null
+  const reflectedColumnsLeft = getReflection(
+    columns,
+    mustSmudge,
+    unsmudgedColumnReflection
+  )
 
   return reflectedColumnsLeft
 }
 
-const solve = (input, handleSmudge) => {
+const solve = (input, mustSmudge) => {
   const patterns = input.replaceAll(/\r/g, '').split('\n\n')
-  return patterns
-    .map(getPatternNote(handleSmudge))
-    .reduce((acc, x) => console.log(acc) || acc + x)
+  return patterns.map(getPatternNote(mustSmudge)).reduce((acc, x) => acc + x)
 }
 
 const input = fs.readFileSync('./input.txt').toString()
