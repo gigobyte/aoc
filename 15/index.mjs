@@ -16,9 +16,8 @@ const solve2 = (input) => {
   const boxes = Array.from({ length: 256 }, (_) => [])
 
   for (const step of steps) {
-    const [label, operation, focalLengthRaw] = step.split(/(=|-)/)
+    const [label, operation, focalLength] = step.split(/(=|-)/)
 
-    const focalLength = Number(focalLengthRaw)
     const boxIndex = runHashAlgorithm(label)
     const box = boxes[boxIndex]
 
@@ -43,7 +42,7 @@ const solve2 = (input) => {
 
   for (const [i, lenses] of boxes.entries()) {
     for (const [j, lens] of lenses.entries()) {
-      total += (1 + i) * (j + 1) * lensMap[lens]
+      total += (1 + i) * (j + 1) * Number(lensMap[lens])
     }
   }
 
