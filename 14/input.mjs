@@ -1,13 +1,13 @@
 import fs from 'node:fs'
 
-const replaceAt = (str, i, replacement) => {
-  return str.substring(0, i) + replacement + str.substring(i + 1)
-}
+// const replaceAt = (str, i, replacement) => {
+//   return str.substring(0, i) + replacement + str.substring(i + 1)
+// }
 
 const tranpose = (rows) => {
   return rows[0]
     .split('')
-    .map((_, colIndex) => rows.map((row) => row[colIndex]).join(''))
+    .map((_, colIndex) => rows.map((row) => row[colIndex]))
 }
 
 const blockers = ['#', 'O']
@@ -25,20 +25,20 @@ const calculateLoad = (tilted) => {
 }
 
 const tiltColumn = (column) => {
-  let tilted = column[0]
+  let tilted = [column[0]]
 
   for (let i = 1; i < column.length; i++) {
     const rock = column[i]
 
     if (rock === '.' || rock === '#') {
-      tilted += rock
+      tilted.push(rock)
     } else {
       let moved = false
 
       for (let j = tilted.length - 1; j >= 0; j--) {
         if (blockers.includes(tilted[j])) {
-          tilted = replaceAt(tilted, i, '.')
-          tilted = replaceAt(tilted, j + 1, rock)
+          tilted[i] = '.'
+          tilted[j + 1] = rock
           moved = true
           break
         }
@@ -47,8 +47,8 @@ const tiltColumn = (column) => {
       if (!moved) {
         for (let j = 0; j < tilted.length; j++) {
           if (tilted[j] === '.') {
-            tilted = replaceAt(tilted, i, '.')
-            tilted = replaceAt(tilted, j, rock)
+            tilted[i] = '.'
+            tilted[j] = rock
             break
           }
         }
