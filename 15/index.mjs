@@ -1,16 +1,7 @@
 import fs from 'node:fs'
 
 const runHashAlgorithm = (step) =>
-  step.split('').reduce((value, c) => {
-    let newValue = value
-
-    const ascii = c.charCodeAt(0)
-    newValue += ascii
-    newValue *= 17
-    newValue %= 256
-
-    return newValue
-  }, 0)
+  step.split('').reduce((value, c) => ((value + c.charCodeAt(0)) * 17) % 256, 0)
 
 const solve1 = (input) => {
   const steps = input.replaceAll(/\r|\n/g, '').split(',')
@@ -22,7 +13,7 @@ const solve2 = (input) => {
   const steps = input.replaceAll(/\r|\n/g, '').split(',')
 
   const lensMap = {}
-  const boxes = Object.fromEntries([...Array(256).keys()].map((i) => [i, []]))
+  const boxes = Array.from({ length: 256 }, (_) => [])
 
   for (const step of steps) {
     const [label, operation, focalLengthRaw] = step.split(/(=|-)/)
@@ -50,9 +41,9 @@ const solve2 = (input) => {
 
   let total = 0
 
-  for (const [i, lenses] of Object.entries(boxes)) {
+  for (const [i, lenses] of boxes.entries()) {
     for (const [j, lens] of lenses.entries()) {
-      total += (1 + Number(i)) * (j + 1) * lensMap[lens]
+      total += (1 + i) * (j + 1) * lensMap[lens]
     }
   }
 
