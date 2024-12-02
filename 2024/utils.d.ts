@@ -16,3 +16,16 @@ export type MapParseNumber<T, TAcc extends any[] = []> = T extends [
 ]
   ? MapParseNumber<rest, [...TAcc, ParseNumber<fst>]>
   : TAcc
+
+export type Assert<T, _ extends T> = T
+
+export type RemoveAtIndex<
+  TArr extends any[],
+  TIndex extends number,
+  TResult extends any[] = [],
+  TIndexer extends any[] = []
+> = TArr extends [infer fst, ...infer rest]
+  ? TIndexer['length'] extends TIndex
+    ? RemoveAtIndex<rest, TIndex, TResult, [...TIndexer, fst]>
+    : RemoveAtIndex<rest, TIndex, [...TResult, fst], [...TIndexer, fst]>
+  : TResult
