@@ -73,12 +73,6 @@ type numberOfSafeReports_<
 
 type numberOfSafeReports = numberOfSafeReports_<reports>
 
-type OpposideMode = {
-  increasing: 'decreasing'
-  decreasing: 'increasing'
-  undecided: 'undecided'
-}
-
 /**
  *
  * Part 2
